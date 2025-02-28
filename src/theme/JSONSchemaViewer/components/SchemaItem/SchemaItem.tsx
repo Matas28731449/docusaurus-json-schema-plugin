@@ -54,7 +54,14 @@ export default function SchemaItem({
 
   // Header
   const summary = (
-    <div style={{ display: "inline-flex", alignItems: "center" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
       <span>
         {name}&nbsp;
         <GenerateFriendlyName schema={schema} />
@@ -72,11 +79,13 @@ export default function SchemaItem({
       <button
         style={{
           marginLeft: "0.5rem",
-          border: "none",
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          padding: "2px 6px",
           background: "transparent",
           color: "inherit",
           cursor: "pointer",
-          fontSize: "1.1em",
+          fontSize: "1em",
         }}
         onClick={() => {
           // For now, do nothing
