@@ -89,7 +89,7 @@ function JSONSchemaInnerViewer(props: InnerViewerProperties): JSX.Element {
             className: props.className || "json-schema-viewer",
           }}
         >
-          <CreateNodes schema={schema} />
+          <CreateNodes schema={schema} showAddButton={true} />
         </Collapsible>
       </JSVOptionsContextProvider>
     </SchemaHierarchyContextProvider>
@@ -115,7 +115,7 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
       .catch((err) => {
         setError(err)
       })
-  }, [])
+  }, [originalSchema, resolverOptions])
 
   if (error !== undefined) {
     return <ErrorOccurred error={error} />

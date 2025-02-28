@@ -20,11 +20,34 @@ import type { JSX } from "react"
 type Props = {
   [x: string]: any
   schema: JSONSchema
+  showAddButton?: boolean
+}
+
+const NodeWithAddButton = ({ children }: { children: JSX.Element }): JSX.Element => {
+  return (
+    <div
+      className="schema-node"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        marginBottom: "0.5rem",
+      }}
+    >
+      {children}
+      <button
+        className="plus-button"
+        style={{ marginLeft: "0.5rem" }}
+        onClick={() => {}}
+      >
+        +
+      </button>
+    </div>
+  )
 }
 
 // Entry point
 export default function CreateNodes(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, showAddButton } = props
 
   if (typeof schema === "boolean") {
     return <CreateValidOrInvalid schema={schema} />
@@ -37,11 +60,33 @@ export default function CreateNodes(props: Props): JSX.Element {
   return (
     <>
       {/* Handle standard types */}
-      <CreateTypes schema={schema} />
+      {showAddButton ? (
+        <NodeWithAddButton>
+          <CreateTypes schema={schema} />
+        </NodeWithAddButton>
+      ) : (
+        <CreateTypes schema={schema} />
+      )}
+
       {/* handle anyOf / allOf / oneOf / not  */}
-      {isComposition && <SchemaComposition schema={schema} />}
+      {isComposition &&
+        (showAddButton ? (
+          <NodeWithAddButton>
+            <SchemaComposition schema={schema} />
+          </NodeWithAddButton>
+        ) : (
+          <SchemaComposition schema={schema} />
+        ))}
+
       {/* Conditional part of the schema */}
-      {isConditional && <SchemaConditional schema={schema} />}
+      {isConditional &&
+        (showAddButton ? (
+          <NodeWithAddButton>
+            <SchemaConditional schema={schema} />
+          </NodeWithAddButton>
+        ) : (
+          <SchemaConditional schema={schema} />
+        ))}
     </>
   )
 }
