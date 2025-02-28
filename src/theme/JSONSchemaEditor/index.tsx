@@ -13,7 +13,7 @@ import type { JSONSchema as Draft_07 } from "json-schema-typed/draft-07"
 import type { EditorWillMount, MonacoEditorProps } from "react-monaco-editor"
 import type { Props as ErrorProps } from "@theme/Error"
 import type { languages as MonacoLanguages } from "monaco-editor/esm/vs/editor/editor.api"
-import { deepMerge } from "@theme/JSONSchemaViewer/utils/deepMerge"
+import { smartMerge } from "@theme/JSONSchemaViewer/utils/smartMerge"
 
 
 export type Props = {
@@ -94,28 +94,28 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
 
   useEffect(() => {
     const handleInsertSchema = (e: Event) => {
-      const customEvent = e as CustomEvent
+      const customEvent = e as CustomEvent;
       if (customEvent.detail) {
-        // Use functional state update to merge the new partial schema.
         setEditorContent((prevContent) => {
-          let currentTemplate = {}
+          let currentTemplate = {};
           try {
             if (prevContent && prevContent.trim()) {
-              currentTemplate = JSON.parse(prevContent)
+              currentTemplate = JSON.parse(prevContent);
             }
           } catch (error) {
-            console.error("Error parsing existing editor content:", error)
+            console.error("Error parsing existing editor content:", error);
           }
-          const merged = deepMerge(currentTemplate, customEvent.detail)
-          return JSON.stringify(merged, null, 2)
-        })
+          // Use smartMerge instead of deepMerge.
+          const merged = smartMerge(currentTemplate, customEvent.detail);
+          return JSON.stringify(merged, null, 2);
+        });
       }
-    }
-    window.addEventListener("insertSchema", handleInsertSchema)
+    };
+    window.addEventListener("insertSchema", handleInsertSchema);
     return () => {
-      window.removeEventListener("insertSchema", handleInsertSchema)
-    }
-  }, [])
+      window.removeEventListener("insertSchema", handleInsertSchema);
+    };
+  }, []);
 
   return (
     <BrowserOnly fallback={<LoadingLabel />}>
