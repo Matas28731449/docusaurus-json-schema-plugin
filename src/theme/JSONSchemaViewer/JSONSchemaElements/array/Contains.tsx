@@ -10,10 +10,11 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   [x: string]: any
   schema: JSONSchemaNS.Array
+  onInsert?: (jsonPointer: string) => void
 }
 
 export default function CreateContains(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let item = schema.contains
 
@@ -41,6 +42,7 @@ export default function CreateContains(props: Props): JSX.Element {
           name={containsLabel}
           schema={item}
           required={schema.minContains !== undefined && schema.minContains > 0}
+          onInsert={onInsert}
         />
       </SchemaHierarchyComponent>
     </ul>

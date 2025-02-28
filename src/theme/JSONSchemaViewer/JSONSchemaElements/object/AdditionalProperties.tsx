@@ -10,6 +10,7 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   schema: JSONSchemaNS.Object
   [x: string]: any
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Translated label
@@ -28,7 +29,7 @@ function AdditionalPropertiesLabel(): JSX.Element {
 }
 
 export default function CreateAdditionalProperties(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let additionalProperties = schema.additionalProperties
 
@@ -48,6 +49,7 @@ export default function CreateAdditionalProperties(props: Props): JSX.Element {
           name={<AdditionalPropertiesLabel />}
           schema={additionalProperties}
           required={false}
+          onInsert={onInsert}
         />
       </SchemaHierarchyComponent>
     </ul>

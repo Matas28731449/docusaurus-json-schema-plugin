@@ -10,6 +10,7 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   schema: JSONSchemaNS.Object
   [x: string]: any
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Translated label
@@ -28,7 +29,7 @@ function UnevaluatedPropertiesLabel(): JSX.Element {
 }
 
 export default function CreateUnevaluatedProperties(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let unevaluatedProperties = schema.unevaluatedProperties
 
@@ -48,6 +49,7 @@ export default function CreateUnevaluatedProperties(props: Props): JSX.Element {
           name={<UnevaluatedPropertiesLabel />}
           schema={unevaluatedProperties}
           required={false}
+          onInsert={onInsert}
         />
       </SchemaHierarchyComponent>
     </ul>

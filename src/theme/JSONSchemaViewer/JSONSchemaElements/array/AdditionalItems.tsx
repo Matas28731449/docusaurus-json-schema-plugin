@@ -10,6 +10,7 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   [x: string]: any
   schema: JSONSchemaNS.Array
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Translated label
@@ -30,7 +31,7 @@ function AdditionalItemsLabel({ count }: { count: number }): JSX.Element {
 
 // To support that scenario not possible anymore in draft-2020-12
 export default function CreateAdditionalItems(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let items = schema.additionalItems
 
@@ -53,6 +54,7 @@ export default function CreateAdditionalItems(props: Props): JSX.Element {
             schema.minItems !== undefined &&
             startingIndex >= schema.minItems - 1
           }
+          onInsert={onInsert}
         />
       </SchemaHierarchyComponent>
     </ul>

@@ -9,11 +9,12 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   schema: JSONSchemaNS.Object
   [x: string]: any
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Generate propertyNames
 export default function PropertyNames(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let propertyNames = schema.propertyNames
 
@@ -40,6 +41,7 @@ export default function PropertyNames(props: Props): JSX.Element {
           name={<code>{pattern}</code>}
           schema={newSchema}
           required={false}
+          onInsert={onInsert}
         />
       </SchemaHierarchyComponent>
     </ul>

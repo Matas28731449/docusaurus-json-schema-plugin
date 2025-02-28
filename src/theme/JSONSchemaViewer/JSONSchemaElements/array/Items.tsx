@@ -10,6 +10,7 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   [x: string]: any
   schema: JSONSchemaNS.Array
+  onInsert?: (jsonPointer: string) => void
 }
 
 function ItemsLabel({
@@ -37,7 +38,7 @@ function ItemsLabel({
 }
 
 export default function CreateItems(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let items = schema.items
 
@@ -69,6 +70,7 @@ export default function CreateItems(props: Props): JSX.Element {
             required={
               schema.minItems !== undefined && schema.minItems >= minimal
             }
+            onInsert={onInsert}
           />
         </SchemaHierarchyComponent>
       ))}

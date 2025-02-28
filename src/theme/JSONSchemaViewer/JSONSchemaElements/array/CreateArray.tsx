@@ -22,10 +22,11 @@ type Props = {
   nullable?: boolean
   description?: string
   [x: string]: any
+  onInsert?: (jsonPointer: string) => void
 }
 
 export default function CreateArray(props: Props): JSX.Element {
-  const { schema, nullable, description } = props
+  const { schema, nullable, description, onInsert } = props
   const options = useJSVOptionsContext()
 
   return (
@@ -33,11 +34,11 @@ export default function CreateArray(props: Props): JSX.Element {
       <TypeLabel />
       &nbsp;&#58;&nbsp;
       <ArrayLabel />
-      <PrefixItems schema={schema} />
-      <Items schema={schema} />
-      <AdditionalItems schema={schema} />
-      <UnevaluatedItems schema={schema} />
-      <Contains schema={schema} />
+      <PrefixItems schema={schema} onInsert={onInsert} />
+      <Items schema={schema} onInsert={onInsert} />
+      <AdditionalItems schema={schema} onInsert={onInsert} />
+      <UnevaluatedItems schema={schema} onInsert={onInsert} />
+      <Contains schema={schema} onInsert={onInsert} />
       <div style={{ marginTop: "var(--ifm-table-cell-padding)" }}>
         <QualifierMessages
           schema={schema}

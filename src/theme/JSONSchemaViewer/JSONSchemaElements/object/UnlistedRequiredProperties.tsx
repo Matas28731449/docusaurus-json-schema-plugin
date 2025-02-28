@@ -10,11 +10,12 @@ import type { JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   schema: JSONSchemaNS.Object
   [x: string]: any
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Generate properties listed as "required" but that couldn't be found in "properties", ...
 export default function CreateUnlistedProperties(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   const required: readonly string[] = schema.required || []
   const listedProperties = Object.keys(schema.properties || {})
@@ -41,6 +42,7 @@ export default function CreateUnlistedProperties(props: Props): JSX.Element {
             name={<strong>{prop}</strong>}
             schema={true}
             required={true}
+            onInsert={onInsert}
           />
         </SchemaHierarchyComponent>
       ))}

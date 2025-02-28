@@ -36,11 +36,11 @@ export default function RenderProvidedType({
   switch (type) {
     case "array":
       return (
-        <CreateArray schema={schema as JSONSchemaNS.Array} {...commonProps} />
+        <CreateArray schema={schema as JSONSchemaNS.Array} {...commonProps} onInsert={onInsert} />
       )
     case "object":
       return (
-        <CreateObject schema={schema as JSONSchemaNS.Object} {...commonProps} />
+        <CreateObject schema={schema as JSONSchemaNS.Object} {...commonProps} onInsert={onInsert} />
       )
     case "string":
       return (

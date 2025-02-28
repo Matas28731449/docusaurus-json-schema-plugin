@@ -10,6 +10,7 @@ import type { JSONSchema, JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 type Props = {
   [x: string]: any
   schema: JSONSchemaNS.Array
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Translated label
@@ -29,7 +30,7 @@ function PrefixItemsLabel({ count }: { count: number }): JSX.Element {
 }
 
 export default function CreatePrefixItems(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   let items = schema.prefixItems
 
@@ -58,6 +59,7 @@ export default function CreatePrefixItems(props: Props): JSX.Element {
               required={
                 schema.minItems !== undefined && schema.minItems >= minimal
               }
+              onInsert={onInsert}
             />
           </SchemaHierarchyComponent>
         )
