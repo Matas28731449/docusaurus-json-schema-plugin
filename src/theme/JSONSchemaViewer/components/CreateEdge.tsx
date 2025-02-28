@@ -13,12 +13,15 @@ type EdgeProps = {
   schema: JSONSchema
   // Is property is required or not
   required: boolean
+  //
+  onInsert?: (jsonPointer: string) => void
 }
 
 export default function CreateEdge({
   name,
   schema,
   required,
+  onInsert,
 }: EdgeProps): JSX.Element {
-  return <SchemaItem name={name} schema={schema} required={required} />
+  return <SchemaItem name={name} schema={schema} required={required} onInsert={onInsert} />
 }
