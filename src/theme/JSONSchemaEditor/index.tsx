@@ -94,11 +94,7 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
     const handleInsertSchema = (e: Event) => {
       const customEvent = e as CustomEvent
       if (customEvent.detail) {
-        // Import the conversion helper dynamically
-        import("@theme/JSONSchemaViewer/utils/convertSchemaToTemplate").then(({ convertSchemaToTemplate }) => {
-          const converted = convertSchemaToTemplate(customEvent.detail)
-          setEditorContent(JSON.stringify(converted, null, 2))
-        })
+        setEditorContent(JSON.stringify(customEvent.detail, null, 2))
       }
     }
     window.addEventListener("insertSchema", handleInsertSchema)
