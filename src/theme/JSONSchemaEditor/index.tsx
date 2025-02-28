@@ -105,7 +105,6 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
           } catch (error) {
             console.error("Error parsing existing editor content:", error);
           }
-          // Use smartMerge instead of deepMerge.
           const merged = smartMerge(currentTemplate, customEvent.detail);
           return JSON.stringify(merged, null, 2);
         });

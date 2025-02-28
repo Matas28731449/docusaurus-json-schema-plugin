@@ -1,38 +1,52 @@
 /**
- * Given the full resolved schema and a JSON pointer (e.g. "/properties/guardConfiguration/properties/checksum/items/properties/debug"),
- * build a partial template that includes only the keys along the pointer path.
+ * Given a full resolved schema and a pointer like:
+ *   "/properties/guardConfiguration/properties/checksum/items/properties/invocationLocations/items/properties/interval"
+ * this function builds a partial template that follows the pointer path.
  *
- * This function removes "properties" segments from the pointer.
- * When it encounters an "items" segment, it replaces the parent's property with an array containing one object.
- * For the final key, it uses the schema type from the full schema:
- *   - if the type is "object", it returns {}
- *   - if "array", it returns []
- *   - if "boolean", it returns false
- *   - otherwise, it returns an empty string.
+ * It removes "properties" segments and handles "items" segments by converting the parent
+ * property into an array (if not already) and then creating a new object within that array.
  *
- * For example:
- *   Pointer: "/properties/guardConfiguration/properties/checksum/items/properties/debug" 
- *   Expected Result:
- *   {
- *     "guardConfiguration": {
- *       "checksum": [
- *         { "debug": false }
- *       ]
- *     }
+ * For the final key, it examines the schema to decide on a default value:
+ *  - object → {}
+ *  - array → []
+ *  - boolean → false
+ *  - string → ""
+ *  - integer → 1
+ *  - number → 0
+ *  - otherwise → ""
+ *
+ * For example, for the pointer above (assuming "interval" is an integer),
+ * the function returns:
+ *
+ * {
+ *   "guardConfiguration": {
+ *     "checksum": [
+ *       {
+ *         "invocationLocations": [
+ *           {
+ *             "interval": 1
+ *           }
+ *         ]
+ *       }
+ *     ]
  *   }
+ * }
  */
 export function buildPartialSchema(fullSchema: any, pointer: string): any {
 	if (!pointer) return fullSchema;
   
-	// Normalize pointer: remove a leading "/" (if any) and filter out "properties"
-	const parts = pointer.replace(/^\/?/, "").split("/").filter(p => p !== "properties" && p.length > 0);
+	// Normalize pointer: remove any leading "/" and filter out "properties" segments.
+	const parts = pointer
+	  .replace(/^\/?/, "")
+	  .split("/")
+	  .filter((p) => p && p !== "properties");
   
 	let result: any = {};
 	let current = result;
-	// Stack to hold parent container info for non-"items" keys.
+	// Stack to track parent container info.
 	const stack: { container: any; key: string }[] = [];
   
-	// Traverse fullSchema for type info.
+	// For type resolution: start with the full schema's properties.
 	let schemaCursor = fullSchema;
 	if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
 	  schemaCursor = schemaCursor.properties;
@@ -42,67 +56,72 @@ export function buildPartialSchema(fullSchema: any, pointer: string): any {
 	  const part = parts[i];
   
 	  if (part === "items") {
-		// When we see "items", we expect that the last key should be an array.
+		// "items" indicates the previous property should be an array.
 		if (stack.length > 0) {
 		  const last = stack.pop()!;
-		  // Replace the parent's value with an array containing one new object.
-		  last.container[last.key] = [{}];
-		  current = last.container[last.key][0];
-  
-		  // Update schemaCursor if available:
-		  if (schemaCursor && typeof schemaCursor === "object" && last.key in schemaCursor) {
-			const nodeSchema = schemaCursor[last.key];
-			if (nodeSchema && nodeSchema.type === "array" && nodeSchema.items) {
-			  schemaCursor = nodeSchema.items;
-			  if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
-				schemaCursor = schemaCursor.properties;
-			  }
-			} else {
-			  schemaCursor = undefined;
-			}
+		  if (!Array.isArray(last.container[last.key])) {
+			last.container[last.key] = [];
 		  }
+		  const newObj = {};
+		  last.container[last.key].push(newObj);
+		  current = newObj;
 		} else {
-		  // If no parent exists, then result becomes an array.
-		  result = [{}];
-		  current = result[0];
+		  result = [];
+		  const newObj = {};
+		  result.push(newObj);
+		  current = newObj;
 		}
+		// When handling "items", we lose schemaCursor context.
+		schemaCursor = undefined;
 	  } else {
-		// For a normal key:
 		if (i === parts.length - 1) {
-		  // Final key: decide the default value using schemaCursor.
+		  // Final key: determine default value using schemaCursor if available.
 		  let defaultValue: any = "";
 		  if (schemaCursor && typeof schemaCursor === "object" && part in schemaCursor) {
 			const nodeSchema = schemaCursor[part];
 			if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.type) {
-			  if (nodeSchema.type === "object") {
-				defaultValue = {};
-			  } else if (nodeSchema.type === "array") {
-				defaultValue = [];
-			  } else if (nodeSchema.type === "boolean") {
-				defaultValue = false;
-			  } else {
-				defaultValue = "";
+			  switch (nodeSchema.type) {
+				case "object":
+				  defaultValue = {};
+				  break;
+				case "array":
+				  defaultValue = [];
+				  break;
+				case "boolean":
+				  defaultValue = false;
+				  break;
+				case "string":
+				  defaultValue = "";
+				  break;
+				case "integer":
+				  defaultValue = 1;
+				  break;
+				case "number":
+				  defaultValue = 0;
+				  break;
+				default:
+				  defaultValue = "";
 			  }
 			}
 		  }
 		  current[part] = defaultValue;
 		} else {
-		  // Intermediate keys are always set to an object.
 		  current[part] = {};
 		}
-		// Push the current info onto the stack.
+		// Save the current container and key.
 		stack.push({ container: current, key: part });
-		// Advance current pointer.
 		current = current[part];
   
-		// Update schemaCursor:
+		// Descend schemaCursor if possible.
 		if (schemaCursor && typeof schemaCursor === "object" && part in schemaCursor) {
-		  const nextSchema = schemaCursor[part];
+		  let nextSchema = schemaCursor[part];
 		  if (nextSchema && typeof nextSchema === "object") {
 			if (nextSchema.type === "array" && nextSchema.items) {
-			  schemaCursor = nextSchema.items;
-			  if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
-				schemaCursor = schemaCursor.properties;
+			  nextSchema = nextSchema.items;
+			  if (nextSchema && typeof nextSchema === "object" && nextSchema.properties) {
+				schemaCursor = nextSchema.properties;
+			  } else {
+				schemaCursor = undefined;
 			  }
 			} else if (nextSchema.properties) {
 			  schemaCursor = nextSchema.properties;
@@ -115,5 +134,6 @@ export function buildPartialSchema(fullSchema: any, pointer: string): any {
 		}
 	  }
 	}
+  
 	return result;
   }
