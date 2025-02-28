@@ -90,9 +90,10 @@ export default function SchemaItem({
           fontSize: "1em",
         }}
         onClick={() => {
-          if (onInsert) {
-            onInsert(jsonPointer)
-          }
+          console.log("Plus button clicked for jsonPointer:", jsonPointer);
+          // if (onInsert) {
+          //   onInsert(jsonPointer)
+          // }
         }}
       >
         +
