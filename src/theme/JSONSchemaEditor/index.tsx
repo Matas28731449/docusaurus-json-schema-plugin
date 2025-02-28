@@ -105,7 +105,6 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
           } catch (error) {
             console.error("Error parsing existing editor content:", error);
           }
-          // Use smartMerge at top level so new top-level keys are added.
           const merged = smartMerge(currentTemplate, customEvent.detail, true);
           return JSON.stringify(merged, null, 2);
         });
