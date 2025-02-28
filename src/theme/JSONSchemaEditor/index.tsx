@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import MonacoEditor from "react-monaco-editor"
 import BrowserOnly from "@docusaurus/BrowserOnly"
 import ErrorBoundary from "@docusaurus/ErrorBoundary"
@@ -24,7 +24,9 @@ export type Props = {
    * (useful for instance to enable enableSchemaRequest)
    */
   diagnosticsOptions?: MonacoLanguages.json.DiagnosticsOptions
-} & MonacoEditorProps
+} & MonacoEditorProps & {
+  value?: string
+}
 
 // When something bad happens
 function EditorError({ error, tryAgain }: ErrorProps): JSX.Element {
@@ -51,7 +53,7 @@ function findOrGenerateId(schema: unknown, idx: number): string {
 
 // Main component
 function JSONSchemaEditorInner(props: Props): JSX.Element {
-  const { schema, diagnosticsOptions, ...editorProps } = props
+  const { schema, diagnosticsOptions, value, ...editorProps } = props
 
   const editorWillMount: EditorWillMount = (monaco) => {
     // Streamline algorithm
@@ -76,6 +78,7 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
       height="90vh"
       language="json"
       editorWillMount={editorWillMount}
+      value={value}
       {...editorProps}
     />
   )
@@ -85,12 +88,29 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // Notice from https://docusaurus.io/docs/api/themes/configuration#use-color-mode
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
+  const [editorContent, setEditorContent] = useState<string>(
+    JSON.stringify(props.schema, null, 2)
+  )
+
+  useEffect(() => {
+    const handleInsertSchema = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail) {
+        setEditorContent(JSON.stringify(customEvent.detail, null, 2))
+      }
+    }
+    window.addEventListener("insertSchema", handleInsertSchema)
+    return () => {
+      window.removeEventListener("insertSchema", handleInsertSchema)
+    }
+  }, [])
+
   return (
     <BrowserOnly fallback={<LoadingLabel />}>
       {() => (
         <>
           <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
-            <JSONSchemaEditorInner {...props} />
+            <JSONSchemaEditorInner {...props} value={editorContent} />
           </ErrorBoundary>
         </>
       )}

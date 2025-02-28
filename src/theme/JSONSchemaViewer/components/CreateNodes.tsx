@@ -20,11 +20,12 @@ import type { JSX } from "react"
 type Props = {
   [x: string]: any
   schema: JSONSchema
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Entry point
 export default function CreateNodes(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   if (typeof schema === "boolean") {
     return <CreateValidOrInvalid schema={schema} />
@@ -37,11 +38,11 @@ export default function CreateNodes(props: Props): JSX.Element {
   return (
     <>
       {/* Handle standard types */}
-      <CreateTypes schema={schema} />
+      <CreateTypes schema={schema} onInsert={onInsert} />
       {/* handle anyOf / allOf / oneOf / not  */}
-      {isComposition && <SchemaComposition schema={schema} />}
+      {isComposition && <SchemaComposition schema={schema} onInsert={onInsert} />}
       {/* Conditional part of the schema */}
-      {isConditional && <SchemaConditional schema={schema} />}
+      {isConditional && <SchemaConditional schema={schema} onInsert={onInsert} />}
     </>
   )
 }

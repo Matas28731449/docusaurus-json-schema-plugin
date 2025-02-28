@@ -22,12 +22,13 @@ type SingleTypeProps = {
   schema: Exclude<JSONSchema, true | false>
   nullable?: boolean
   type: TypeValues
+  onInsert?: (jsonPointer: string) => void
 }
 
 function RenderSingleType(props: SingleTypeProps): JSX.Element {
-  const { schema, type, nullable } = props
+  const { schema, type, nullable, onInsert } = props
 
-  return <RenderProvidedType schema={schema} type={type} nullable={nullable} />
+  return <RenderProvidedType schema={schema} type={type} nullable={nullable} onInsert={onInsert} />
 }
 
 // Render multiple type
@@ -38,10 +39,11 @@ type MultipleTypesProps = {
     value: TypeValues
     label: JSX.Element
   }[]
+  onInsert?: (jsonPointer: string) => void
 }
 
 function RenderMultipleTypes(props: MultipleTypesProps): JSX.Element {
-  const { schema, types, nullable } = props
+  const { schema, types, nullable, onInsert } = props
 
   return (
     <Tabs defaultValue={types[0].value} values={types} key={"multiple_types"}>
@@ -52,6 +54,7 @@ function RenderMultipleTypes(props: MultipleTypesProps): JSX.Element {
               type={val.value}
               schema={schema}
               nullable={nullable}
+              onInsert={onInsert}
             />
           }
         </TabItem>
@@ -63,11 +66,12 @@ function RenderMultipleTypes(props: MultipleTypesProps): JSX.Element {
 type Props = {
   [x: string]: any
   schema: Exclude<JSONSchema, true | false>
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Entry point
 export default function CreateTypes(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   // Several possibilities
   // 1. User only used a single type (most common case)
@@ -86,7 +90,7 @@ export default function CreateTypes(props: Props): JSX.Element {
     const firstType = foundTypes.find((s) => s !== "null") || foundTypes[0]
 
     return (
-      <RenderSingleType schema={schema} type={firstType} nullable={hasNull} />
+      <RenderSingleType schema={schema} type={firstType} nullable={hasNull} onInsert={onInsert} />
     )
   }
 
@@ -101,7 +105,7 @@ export default function CreateTypes(props: Props): JSX.Element {
       }))
 
     return (
-      <RenderMultipleTypes schema={schema} types={values} nullable={hasNull} />
+      <RenderMultipleTypes schema={schema} types={values} nullable={hasNull} onInsert={onInsert} />
     )
   }
 

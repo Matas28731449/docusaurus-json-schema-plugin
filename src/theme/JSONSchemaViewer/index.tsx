@@ -15,6 +15,7 @@ import {
   ErrorOccurredLabel,
 } from "@theme/JSONSchemaViewer/labels"
 import type { IResolveOpts } from "@stoplight/json-ref-resolver/types"
+import { buildPartialSchema } from "@theme/JSONSchemaViewer/utils/buildPartialSchema"
 
 export type Props = {
   /**
@@ -45,6 +46,7 @@ type InnerViewerProperties = {
   viewerOptions?: Omit<JSVOptions, "fullSchema">
   // To customize the styles of the viewer, to override docusaurus styles on a specific page
   className?: string
+  onInsert?: (jsonPointer: string) => void
 }
 
 // Translated labels
@@ -60,7 +62,7 @@ function ErrorOccurred(props: { error: Error }): JSX.Element {
 
 // Internal
 function JSONSchemaInnerViewer(props: InnerViewerProperties): JSX.Element {
-  const { schema, viewerOptions } = props
+  const { schema, viewerOptions, className, onInsert } = props
   // Title of the schema, for user friendliness
   const title =
     typeof schema !== "boolean" && schema.title !== undefined
@@ -86,10 +88,10 @@ function JSONSchemaInnerViewer(props: InnerViewerProperties): JSX.Element {
           summary={<strong>{title}</strong>}
           detailsProps={{
             open: true,
-            className: props.className || "json-schema-viewer",
+            className: className || "json-schema-viewer",
           }}
         >
-          <CreateNodes schema={schema} />
+          <CreateNodes schema={schema} onInsert={onInsert} />
         </Collapsible>
       </JSVOptionsContextProvider>
     </SchemaHierarchyContextProvider>
@@ -105,6 +107,16 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
     undefined as undefined | JSONSchema,
   )
 
+  // onInsert handler: receives a json pointer, builds the partial schema, and dispatches an event.
+  const handleInsert = (jsonPointer: string) => {
+    if (resolvedSchema) {
+      const partial = buildPartialSchema(resolvedSchema, jsonPointer)
+      window.dispatchEvent(
+        new CustomEvent("insertSchema", { detail: partial })
+      )
+    }
+  }
+
   useEffect(() => {
     // Time to do the job
     new Resolver()
@@ -115,7 +127,7 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
       .catch((err) => {
         setError(err)
       })
-  }, [])
+  }, [originalSchema, resolverOptions])
 
   if (error !== undefined) {
     return <ErrorOccurred error={error} />
@@ -127,6 +139,7 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         schema={resolvedSchema}
         viewerOptions={viewerOptions}
         className={props.className}
+        onInsert={handleInsert}
       />
     )
   }

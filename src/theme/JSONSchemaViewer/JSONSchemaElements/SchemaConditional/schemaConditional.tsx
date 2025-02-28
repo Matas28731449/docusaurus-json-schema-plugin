@@ -15,12 +15,13 @@ import type { JSONSchema, JSONSchemaNS } from "@theme/JSONSchemaViewer/types"
 
 type Props = {
   schema: Exclude<JSONSchema, true | false>
+  onInsert?: (jsonPointer: string) => void
   [x: string]: any
 }
 
 // To handle Schema Conditional (if-then-else , dependentRequired , dependentSchemas , dependencies )
 export default function SchemaConditional(props: Props): JSX.Element {
-  const { schema } = props
+  const { schema, onInsert } = props
 
   // Checks
   const isIfThenElse = schema.if !== undefined
@@ -51,13 +52,13 @@ export default function SchemaConditional(props: Props): JSX.Element {
       }}
     >
       {/* Handles if-then-else case */}
-      {isIfThenElse && <IfElseThen schema={schema} />}
+      {isIfThenElse && <IfElseThen schema={schema} onInsert={onInsert} />}
       {/* Handles dependentRequired case */}
-      {isDependentRequired && <DependentRequired schema={schema} />}
+      {isDependentRequired && <DependentRequired schema={schema} onInsert={onInsert} />}
       {/* Handles dependentSchemas case */}
-      {isDependentSchemas && <DependentSchemas schema={schema} />}
+      {isDependentSchemas && <DependentSchemas schema={schema} onInsert={onInsert} />}
       {/* Handles dependencies (deprecated) */}
-      {isDependencies && <Dependencies schema={schema} />}
+      {isDependencies && <Dependencies schema={schema} onInsert={onInsert} />}
     </Collapsible>
   )
 }

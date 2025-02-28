@@ -22,19 +22,22 @@ import type {
   JSONSchema_Draft_2019_09,
 } from "@theme/JSONSchemaViewer/types"
 
-type SchemaItemProps = {
+export type SchemaItemProps = {
   // name of the item (with styles when needed)
   name: ReactNode
   // Our schema
   schema: JSONSchema
   // Is it required
   required: boolean
+  //
+  onInsert?: (jsonPointer: string) => void
 }
 
 export default function SchemaItem({
   schema,
   name,
   required,
+  onInsert,
 }: SchemaItemProps): JSX.Element {
   const { jsonPointer, level } = useSchemaHierarchyContext()
 
@@ -78,7 +81,6 @@ export default function SchemaItem({
       </span>
       <button
         style={{
-          marginLeft: "0.5rem",
           border: "1px solid #ccc",
           borderRadius: "4px",
           padding: "2px 6px",
@@ -88,7 +90,9 @@ export default function SchemaItem({
           fontSize: "1em",
         }}
         onClick={() => {
-          // For now, do nothing
+          if (onInsert) {
+            onInsert(jsonPointer)
+          }
         }}
       >
         +
@@ -104,7 +108,7 @@ export default function SchemaItem({
           open: false,
         }}
       >
-        <CreateNodes schema={schema} />
+        <CreateNodes schema={schema} onInsert={onInsert} />
       </Collapsible>
     </li>
   )

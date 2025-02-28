@@ -22,12 +22,14 @@ type RenderProvidedTypeProps = {
   schema: Exclude<JSONSchema, true | false>
   type: TypeValues
   nullable?: boolean
+  onInsert?: (jsonPointer: string) => void
 }
 
 export default function RenderProvidedType({
   schema,
   type,
   nullable,
+  onInsert,
 }: RenderProvidedTypeProps): JSX.Element {
   const commonProps = { description: schema.description, nullable }
 
