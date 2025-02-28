@@ -54,20 +54,37 @@ export default function SchemaItem({
 
   // Header
   const summary = (
-    <>
-      {name}&nbsp;
-      <GenerateFriendlyName schema={schema} />
-      {isRequired && <>&nbsp;</>}
-      {isRequired && <RequiredLabel />}
-      {isDeprecated && <>&nbsp;</>}
-      {isDeprecated && <DeprecatedLabel />}
-      {isReadOnly && <>&nbsp;</>}
-      {isReadOnly && <ReadOnlyLabel />}
-      {isWriteOnly && <>&nbsp;</>}
-      {isWriteOnly && <WriteOnlyLabel />}
-      {isConstant && <>&nbsp;</>}
-      {isConstant && <ConstantLabel />}
-    </>
+    <div style={{ display: "inline-flex", alignItems: "center" }}>
+      <span>
+        {name}&nbsp;
+        <GenerateFriendlyName schema={schema} />
+        {isRequired && <>&nbsp;</>}
+        {isRequired && <RequiredLabel />}
+        {isDeprecated && <>&nbsp;</>}
+        {isDeprecated && <DeprecatedLabel />}
+        {isReadOnly && <>&nbsp;</>}
+        {isReadOnly && <ReadOnlyLabel />}
+        {isWriteOnly && <>&nbsp;</>}
+        {isWriteOnly && <WriteOnlyLabel />}
+        {isConstant && <>&nbsp;</>}
+        {isConstant && <ConstantLabel />}
+      </span>
+      <button
+        style={{
+          marginLeft: "0.5rem",
+          border: "none",
+          background: "transparent",
+          color: "inherit",
+          cursor: "pointer",
+          fontSize: "1.1em",
+        }}
+        onClick={() => {
+          // For now, do nothing
+        }}
+      >
+        +
+      </button>
+    </div>
   )
 
   return (
@@ -78,9 +95,7 @@ export default function SchemaItem({
           open: false,
         }}
       >
-        <>
-          <CreateNodes schema={schema} />
-        </>
+        <CreateNodes schema={schema} />
       </Collapsible>
     </li>
   )
