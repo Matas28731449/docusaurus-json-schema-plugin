@@ -88,15 +88,17 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // Notice from https://docusaurus.io/docs/api/themes/configuration#use-color-mode
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
-  const [editorContent, setEditorContent] = useState<string>(
-    JSON.stringify(props.schema, null, 2)
-  )
+  const [editorContent, setEditorContent] = useState<string>("")
 
   useEffect(() => {
     const handleInsertSchema = (e: Event) => {
       const customEvent = e as CustomEvent
       if (customEvent.detail) {
-        setEditorContent(JSON.stringify(customEvent.detail, null, 2))
+        // Import the conversion helper dynamically
+        import("@theme/JSONSchemaViewer/utils/convertSchemaToTemplate").then(({ convertSchemaToTemplate }) => {
+          const converted = convertSchemaToTemplate(customEvent.detail)
+          setEditorContent(JSON.stringify(converted, null, 2))
+        })
       }
     }
     window.addEventListener("insertSchema", handleInsertSchema)
