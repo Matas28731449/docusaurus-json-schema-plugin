@@ -1,29 +1,32 @@
 /**
- * Given the full resolved schema and a JSON pointer (e.g. "/properties/targets"),
+ * Given the full resolved schema and a JSON pointer (e.g. "/properties/guardConfiguration/properties/checksum/items/properties/debug"),
  * build a partial template that includes only the keys along the pointer path.
  *
- * The function removes "properties" segments from the pointer.
- * For the final key, if the corresponding schema is an object (type === "object"),
- * it returns an empty object {}; otherwise, it returns an empty string.
+ * This function removes "properties" segments from the pointer.
+ * - When it encounters an "items" segment, it converts the parent container into an array with one element.
+ * - For the final key, it uses type information from the full schema (if available) to decide the default:
+ *    - object: {}
+ *    - array: []
+ *    - boolean: false
+ *    - otherwise: ""
  *
  * For example:
- *   Pointer: "/properties/targets" 
- *   Full schema: { type:"object", properties: { targets: { type:"object", properties: { ... } } } }
- *   Result: { "targets": {} }
+ *   Pointer: "/properties/guardConfiguration/properties/checksum/items/properties/debug" 
+ *   Full schema: { type:"object", properties: { guardConfiguration: { type:"object", properties: { checksum: { type:"array", items: { type:"object", properties: { debug: { type:"boolean" } } } } } } } }
+ *   Result: { "guardConfiguration": { "checksum": [ { "debug": false } ] } }
  */
 export function buildPartialSchema(fullSchema: any, pointer: string): any {
 	if (!pointer) return fullSchema;
   
-	// Remove leading "/" if present.
-	const normalized = pointer.startsWith("/") ? pointer.slice(1) : pointer;
-	// Split pointer into parts and filter out any segment equal to "properties"
-	const parts = normalized.split("/").filter((p) => p !== "properties" && p.length > 0);
+	// Remove leading "/" if present and split pointer, filtering out "properties"
+	const parts = pointer.replace(/^\/?/, "").split("/").filter(p => p !== "properties" && p.length > 0);
   
 	let result: any = {};
 	let current = result;
+	// We'll also maintain a stack to update parent containers if we hit an "items" segment.
+	let stack: { container: any, key: string }[] = [];
   
-	// We'll traverse the fullSchema to check the type of the final node.
-	// Assume that fullSchema is an object with a "properties" key at the top.
+	// Traverse the full schema to get type info.
 	let schemaCursor = fullSchema;
 	if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
 	  schemaCursor = schemaCursor.properties;
@@ -31,22 +34,63 @@ export function buildPartialSchema(fullSchema: any, pointer: string): any {
   
 	for (let i = 0; i < parts.length; i++) {
 	  const key = parts[i];
-	  // Use schemaCursor to get the node's schema if available.
-	  let nodeSchema = schemaCursor ? schemaCursor[key] : undefined;
   
-	  if (i === parts.length - 1) {
-		// Final key: check the type.
-		if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.type === "object") {
-		  current[key] = {};
+	  if (key === "items") {
+		// "items" indicates that the parent should be an array.
+		if (stack.length > 0) {
+		  // Pop the last entry; that parent's property will become an array.
+		  let last = stack.pop()!;
+		  const newObj = {};
+		  last.container[last.key] = [newObj];
+		  current = newObj;
 		} else {
-		  current[key] = "";
+		  // If no stack, then result becomes an array.
+		  const newObj = {};
+		  result = [newObj];
+		  current = newObj;
+		}
+		// Update schemaCursor: if current node has an "items" property, move into it.
+		if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.items) {
+		  schemaCursor = schemaCursor.items;
+		  if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
+			schemaCursor = schemaCursor.properties;
+		  }
+		} else {
+		  schemaCursor = undefined;
 		}
 	  } else {
-		current[key] = {};
+		// Normal key: push the current container info onto the stack.
+		stack.push({ container: current, key });
+		if (i === parts.length - 1) {
+		  // Final key: try to determine default value using schemaCursor.
+		  let value: any = "";
+		  if (schemaCursor && typeof schemaCursor === "object" && key in schemaCursor) {
+			const nodeSchema = schemaCursor[key];
+			if (nodeSchema && typeof nodeSchema === "object") {
+			  if (nodeSchema.type === "object") {
+				value = {};
+			  } else if (nodeSchema.type === "array") {
+				value = [];
+			  } else if (nodeSchema.type === "boolean") {
+				value = false;
+			  } else {
+				value = "";
+			  }
+			}
+		  }
+		  current[key] = value;
+		} else {
+		  current[key] = {};
+		}
 		current = current[key];
-		// Move schemaCursor deeper if possible.
-		if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.properties) {
-		  schemaCursor = nodeSchema.properties;
+		// Update schemaCursor: move deeper if possible.
+		if (schemaCursor && typeof schemaCursor === "object" && key in schemaCursor) {
+		  let nodeSchema = schemaCursor[key];
+		  if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.properties) {
+			schemaCursor = nodeSchema.properties;
+		  } else {
+			schemaCursor = undefined;
+		  }
 		} else {
 		  schemaCursor = undefined;
 		}
