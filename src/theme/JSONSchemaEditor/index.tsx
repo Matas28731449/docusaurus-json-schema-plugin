@@ -88,13 +88,25 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // Notice from https://docusaurus.io/docs/api/themes/configuration#use-color-mode
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
-  const [editorContent, setEditorContent] = useState<string>("")
+  const [editorContent, setEditorContent] = useState<string>("{}")
 
   useEffect(() => {
     const handleInsertSchema = (e: Event) => {
       const customEvent = e as CustomEvent
       if (customEvent.detail) {
-        setEditorContent(JSON.stringify(customEvent.detail, null, 2))
+        // Use functional state update to merge the new partial schema.
+        setEditorContent((prevContent) => {
+          let currentTemplate = {}
+          try {
+            if (prevContent && prevContent.trim()) {
+              currentTemplate = JSON.parse(prevContent)
+            }
+          } catch (error) {
+            console.error("Error parsing existing editor content:", error)
+          }
+          const merged = deepMerge(currentTemplate, customEvent.detail)
+          return JSON.stringify(merged, null, 2)
+        })
       }
     }
     window.addEventListener("insertSchema", handleInsertSchema)
