@@ -13,6 +13,8 @@ import type { JSONSchema as Draft_07 } from "json-schema-typed/draft-07"
 import type { EditorWillMount, MonacoEditorProps } from "react-monaco-editor"
 import type { Props as ErrorProps } from "@theme/Error"
 import type { languages as MonacoLanguages } from "monaco-editor/esm/vs/editor/editor.api"
+import { deepMerge } from "@theme/JSONSchemaViewer/utils/deepMerge"
+
 
 export type Props = {
   /**
@@ -88,7 +90,7 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // Notice from https://docusaurus.io/docs/api/themes/configuration#use-color-mode
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
-  const [editorContent, setEditorContent] = useState<string>("{}")
+  const [editorContent, setEditorContent] = useState<string>("")
 
   useEffect(() => {
     const handleInsertSchema = (e: Event) => {
