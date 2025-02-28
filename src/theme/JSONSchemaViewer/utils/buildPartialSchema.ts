@@ -1,30 +1,42 @@
 /**
- * Given the full resolved schema and a JSON pointer (e.g. "#/targets/input"),
- * build a partial template that includes all parent keys and sets the final
- * value to {} if the final schema is an object, or "" if it's a primitive.
+ * Given the full resolved schema and a JSON pointer (e.g. "/properties/targets"),
+ * build a partial template that includes only the keys along the pointer path.
+ *
+ * The function removes "properties" segments from the pointer.
+ * For the final key, if the corresponding schema is an object (type === "object"),
+ * it returns an empty object {}; otherwise, it returns an empty string.
+ *
+ * For example:
+ *   Pointer: "/properties/targets" 
+ *   Full schema: { type:"object", properties: { targets: { type:"object", properties: { ... } } } }
+ *   Result: { "targets": {} }
  */
 export function buildPartialSchema(fullSchema: any, pointer: string): any {
-	if (!pointer || pointer === "#") return fullSchema;
-	// Remove the "#/" prefix and split into parts.
-	const parts = pointer.replace(/^#\//, "").split("/");
-	let partial: any = {};
-	let current = partial;
-	let currentFull = fullSchema;
+	if (!pointer) return fullSchema;
+  
+	// Remove leading "/" if present.
+	const normalized = pointer.startsWith("/") ? pointer.slice(1) : pointer;
+	// Split pointer into parts and filter out any segment equal to "properties"
+	const parts = normalized.split("/").filter((p) => p !== "properties" && p.length > 0);
+  
+	let result: any = {};
+	let current = result;
+  
+	// We'll traverse the fullSchema to check the type of the final node.
+	// Assume that fullSchema is an object with a "properties" key at the top.
+	let schemaCursor = fullSchema;
+	if (schemaCursor && typeof schemaCursor === "object" && schemaCursor.properties) {
+	  schemaCursor = schemaCursor.properties;
+	}
+  
 	for (let i = 0; i < parts.length; i++) {
 	  const key = parts[i];
-	  // Drill into the full schema.
-	  if (currentFull && typeof currentFull === "object" && key in currentFull) {
-		currentFull = currentFull[key];
-	  } else {
-		// If the key isn’t found, break out.
-		currentFull = undefined;
-		break;
-	  }
+	  // Use schemaCursor to get the node's schema if available.
+	  let nodeSchema = schemaCursor ? schemaCursor[key] : undefined;
+  
 	  if (i === parts.length - 1) {
-		// For the final key:
-		// If the schema is an object (has type "object"), set an empty object.
-		// Otherwise, use an empty string.
-		if (currentFull && typeof currentFull === "object" && currentFull.type === "object") {
+		// Final key: check the type.
+		if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.type === "object") {
 		  current[key] = {};
 		} else {
 		  current[key] = "";
@@ -32,7 +44,14 @@ export function buildPartialSchema(fullSchema: any, pointer: string): any {
 	  } else {
 		current[key] = {};
 		current = current[key];
+		// Move schemaCursor deeper if possible.
+		if (nodeSchema && typeof nodeSchema === "object" && nodeSchema.properties) {
+		  schemaCursor = nodeSchema.properties;
+		} else {
+		  schemaCursor = undefined;
+		}
 	  }
 	}
-	return partial;
+  
+	return result;
   }
