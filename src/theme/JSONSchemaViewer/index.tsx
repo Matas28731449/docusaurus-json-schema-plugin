@@ -15,7 +15,31 @@ import {
   ErrorOccurredLabel,
 } from "@theme/JSONSchemaViewer/labels"
 import type { IResolveOpts } from "@stoplight/json-ref-resolver/types"
-import { buildPartialSchema } from "@theme/JSONSchemaViewer/utils/buildPartialSchema"
+
+// Import lodash functions
+import get from "lodash/get"
+import set from "lodash/set"
+
+// Import JSON Schema Faker
+import JSONSchemaFaker from "json-schema-faker"
+
+// Configure JSON Schema Faker to generate a skeleton:
+JSONSchemaFaker.option({
+  alwaysFakeOptionals: true,
+  maxItems: 1,
+});
+JSONSchemaFaker.define("string", () => "");
+JSONSchemaFaker.define("integer", () => 1);
+JSONSchemaFaker.define("number", () => 0);
+JSONSchemaFaker.define("boolean", () => false);
+JSONSchemaFaker.define("array", (schema) => {
+  // Return an empty array by default
+  return [];
+});
+JSONSchemaFaker.define("object", (schema) => {
+  // Return an empty object by default.
+  return {};
+});
 
 export type Props = {
   /**
@@ -102,18 +126,40 @@ function JSONSchemaInnerViewer(props: InnerViewerProperties): JSX.Element {
 export default function JSONSchemaViewer(props: Props): JSX.Element {
   const { schema: originalSchema, resolverOptions, viewerOptions } = props
 
-  const [error, setError] = useState(undefined as undefined | Error)
-  const [resolvedSchema, setResolvedSchema] = useState(
-    undefined as undefined | JSONSchema,
+  const [error, setError] = useState<Error | undefined>(undefined)
+  const [resolvedSchema, setResolvedSchema] = useState<JSONSchema | undefined>(
+    undefined
   )
 
-  // onInsert handler: receives a json pointer, builds the partial schema, and dispatches an event.
+  // onInsert handler: uses lodash to convert pointer to dot notation,
+  // extracts the sub-schema using lodash.get, and then generates a skeleton
+  // using JSONSchemaFaker.resolve. Finally, it dispatches the result in an event.
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      const partial = buildPartialSchema(resolvedSchema, jsonPointer)
-      window.dispatchEvent(
-        new CustomEvent("insertSchema", { detail: partial })
-      )
+      // Convert pointer like "/properties/targets/properties/output" to dot path "targets.output"
+      const dotPath = jsonPointer
+        .replace(/^\/properties\//, "")
+        .replace(/\/properties\//g, ".");
+      // Use lodash.get to extract the sub-schema from the resolved schema.
+      const subSchema = get(resolvedSchema, dotPath);
+      if (!subSchema) {
+        console.error("Sub-schema not found for pointer:", jsonPointer);
+        return;
+      }
+      // Use JSONSchemaFaker to generate a skeleton for the sub-schema.
+      JSONSchemaFaker.resolve(subSchema)
+        .then((skeletonData) => {
+          // Use lodash.set to build an object with the dotPath and skeletonData.
+          let partial: any = {};
+          set(partial, dotPath, skeletonData);
+          // Dispatch event with the partial schema.
+          window.dispatchEvent(
+            new CustomEvent("insertSchema", { detail: partial })
+          );
+        })
+        .catch((error) => {
+          console.error("Error generating skeleton data:", error);
+        });
     }
   }
 
