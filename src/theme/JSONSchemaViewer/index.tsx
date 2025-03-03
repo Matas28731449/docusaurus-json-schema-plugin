@@ -139,18 +139,22 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Convert pointer "/properties/targets/properties/output" to dot notation "targets.output"
+      // Compute dotPath by removing both "properties" and "items" segments.
       const dotPath = jsonPointer
-        .replace(/^\/properties\//, "")
-        .replace(/\/properties\//g, ".");
+        .replace(/\/(properties|items)/g, "") // Remove both "properties" and "items" segments.
+        .replace(/^\//, "")                  // Remove any leading slash.
+        .replace(/\//g, ".");                // Convert remaining slashes to dots.
       console.log("Computed dotPath:", dotPath);
   
-      // Try to get sub-schema using the computed dotPath.
+      // For fallback, use the full pointer converted to dot notation (keeping segments)
+      const fallbackPath = jsonPointer
+        .replace(/^\//, "")
+        .replace(/\//g, ".");
+      console.log("Using fallback path:", fallbackPath);
+  
+      // Attempt to get the sub-schema using our computed dotPath.
       let subSchema = get(resolvedSchema, dotPath);
       if (!subSchema) {
-        // Fallback: convert the entire pointer to dot notation.
-        const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
-        console.log("Using fallback path:", fallbackPath);
         subSchema = get(resolvedSchema, fallbackPath);
       }
   
@@ -159,26 +163,24 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         return;
       }
   
-      // Split the pointer by "/properties/" and filter out empties.
+      // Decide if we want to generate skeleton data or an empty object/array based on depth.
+      // If the pointer contains no nested child segments (i.e. it selects the entire property),
+      // then generate an empty object or empty array based on the sub-schema type.
       const parts = jsonPointer.split("/properties/").filter((p) => p.trim() !== "");
-  
-      // If only one property is selected (i.e. top-level), produce an empty skeleton
-      // according to the type of the sub-schema.
       if (parts.length === 1) {
         let defaultValue: any = {};
         if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
           defaultValue = [];
         }
-        const partial: any = {};
+        let partial: any = {};
         set(partial, dotPath, defaultValue);
         console.log("Generated partial schema (top-level):", partial);
         window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
       } else {
-        // For nested pointers, generate a skeleton using JSONSchemaFaker.
+        // For nested pointers, generate skeleton data using JSONSchemaFaker.
         JSONSchemaFaker.resolve(subSchema)
           .then((skeletonData) => {
-            // If the final type is array and the Faker didn't return an array,
-            // force it to be an empty array.
+            // If the final type is array and the skeleton isn't an array, force it to an empty array.
             if (subSchema && typeof subSchema === "object" && subSchema.type === "array" && !Array.isArray(skeletonData)) {
               skeletonData = [];
             }
