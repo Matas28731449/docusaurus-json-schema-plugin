@@ -80,24 +80,15 @@ export default function SchemaItem({
         {isConstant && <ConstantLabel />}
       </span>
       <button
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          padding: "2px 6px",
-          background: "transparent",
-          color: "inherit",
-          cursor: "pointer",
-          fontSize: "1em",
-        }}
-        onClick={() => {
-          // console.log("Plus button clicked for jsonPointer:", jsonPointer);
+        className="plus-button"
+        onClick={(e) => {
+          e.stopPropagation();
           if (onInsert) {
             onInsert(jsonPointer)
-            console.log("onInsert dispatched:", jsonPointer);
           }
         }}
       >
-        +
+        Add
       </button>
     </div>
   )
