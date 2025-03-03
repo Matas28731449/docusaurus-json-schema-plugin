@@ -3,10 +3,8 @@
  * 
  * - If both values are arrays, merge them by taking the union of their elements (avoiding duplicates).
  * - If both values are objects (and not arrays), merge them recursively.
- * - At the top level, if a key from newObj does not exist in oldObj, it is added.
- * - At nested levels, keys that do not exist in oldObj are skipped, preserving manual deletions.
+ * - Always add keys from newObj if they don't exist in oldObj.
  */
-
 function mergeArrays(oldArr: any[], newArr: any[]): any[] {
   const result = [...oldArr];
   for (const newItem of newArr) {
@@ -48,10 +46,8 @@ export function smartMerge(oldObj: any, newObj: any, isTopLevel = true): any {
           merged[key] = newObj[key];
         }
       } else {
-        // At top level, add new keys; at nested levels, skip keys that don't exist.
-        if (isTopLevel) {
-          merged[key] = newObj[key];
-        }
+        // Always add new keys, regardless of level.
+        merged[key] = newObj[key];
       }
     }
   }
