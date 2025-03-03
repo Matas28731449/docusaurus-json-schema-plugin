@@ -1,4 +1,5 @@
 const path = require("path")
+const webpack = require("webpack")
 
 const isDeployPreview = !!process.env.NETLIFY
 const baseUrl = isDeployPreview ? "/" : "/docusaurus-json-schema-plugin/"
@@ -90,9 +91,22 @@ module.exports = {
               // assuming root node_modules is up
               react: path.resolve("../node_modules/react"),
             },
+            fallback: {
+              http: require.resolve("stream-http"),
+              https: require.resolve("https-browserify"),
+              url: require.resolve("url/"),
+              buffer: require.resolve("buffer/"),
+              process: require.resolve("process/browser.js"),
+            },
           },
-        }
+          plugins: [
+            new webpack.ProvidePlugin({
+              process: "process/browser.js",
+              Buffer: ["buffer", "Buffer"],
+            }),
+          ],
+        };
       },
     }),
   ],
-}
+};
