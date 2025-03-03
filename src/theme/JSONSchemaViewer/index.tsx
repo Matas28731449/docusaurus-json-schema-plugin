@@ -23,6 +23,11 @@ import set from "lodash/set"
 // Import JSON Schema Faker
 import JSONSchemaFaker from "json-schema-faker"
 
+// Force Buffer to be defined globally (polyfill for the browser)
+if (typeof window !== "undefined" && typeof window.Buffer === "undefined") {
+  window.Buffer = require("buffer").Buffer;
+}
+
 // Configure JSON Schema Faker to generate a skeleton:
 JSONSchemaFaker.option({
   alwaysFakeOptionals: true,
