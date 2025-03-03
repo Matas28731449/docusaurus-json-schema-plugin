@@ -139,60 +139,48 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Compute dotPath by removing both "properties" and "items" segments.
+      // Remove both "properties" and "items" segments from the pointer.
       const dotPath = jsonPointer
-        .replace(/\/(properties|items)/g, "") // Remove both "properties" and "items" segments.
-        .replace(/^\//, "")                  // Remove any leading slash.
-        .replace(/\//g, ".");                // Convert remaining slashes to dots.
+        .replace(/\/(properties|items)/g, "")  // remove segments "properties" and "items"
+        .replace(/^\//, "")                    // remove leading slash
+        .replace(/\//g, ".");                  // replace remaining slashes with dots
+  
       console.log("Computed dotPath:", dotPath);
   
-      // For fallback, use the full pointer converted to dot notation (keeping segments)
+      // Use the same conversion for the fallback path.
       const fallbackPath = jsonPointer
+        .replace(/\/(properties|items)/g, "")
         .replace(/^\//, "")
         .replace(/\//g, ".");
       console.log("Using fallback path:", fallbackPath);
   
-      // Attempt to get the sub-schema using our computed dotPath.
-      let subSchema = get(resolvedSchema, dotPath);
-      if (!subSchema) {
-        subSchema = get(resolvedSchema, fallbackPath);
-      }
-  
+      // Extract the sub-schema from the resolved schema using the fallbackPath.
+      let subSchema = get(resolvedSchema, fallbackPath);
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
         return;
       }
   
-      // Decide if we want to generate skeleton data or an empty object/array based on depth.
-      // If the pointer contains no nested child segments (i.e. it selects the entire property),
-      // then generate an empty object or empty array based on the sub-schema type.
-      const parts = jsonPointer.split("/properties/").filter((p) => p.trim() !== "");
-      if (parts.length === 1) {
-        let defaultValue: any = {};
-        if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
-          defaultValue = [];
-        }
+      // If the sub-schema type is array, we want to generate an empty array skeleton.
+      if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
         let partial: any = {};
-        set(partial, dotPath, defaultValue);
-        console.log("Generated partial schema (top-level):", partial);
+        set(partial, dotPath, []);
+        console.log("Generated partial schema (array):", partial);
         window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
-      } else {
-        // For nested pointers, generate skeleton data using JSONSchemaFaker.
-        JSONSchemaFaker.resolve(subSchema)
-          .then((skeletonData) => {
-            // If the final type is array and the skeleton isn't an array, force it to an empty array.
-            if (subSchema && typeof subSchema === "object" && subSchema.type === "array" && !Array.isArray(skeletonData)) {
-              skeletonData = [];
-            }
-            let partial: any = {};
-            set(partial, dotPath, skeletonData);
-            console.log("Generated partial schema (nested):", partial);
-            window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
-          })
-          .catch((error) => {
-            console.error("Error generating skeleton data:", error);
-          });
+        return;
       }
+  
+      // Otherwise, generate skeleton data using JSONSchemaFaker.resolve.
+      JSONSchemaFaker.resolve(subSchema)
+        .then((skeletonData) => {
+          let partial: any = {};
+          set(partial, dotPath, skeletonData);
+          console.log("Generated partial schema (nested):", partial);
+          window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+        })
+        .catch((error) => {
+          console.error("Error generating skeleton data:", error);
+        });
     }
   };
 
