@@ -31,13 +31,12 @@ if (typeof window !== "undefined" && typeof window.Buffer === "undefined") {
 // Configure JSON Schema Faker to generate a skeleton:
 JSONSchemaFaker.option({
   alwaysFakeOptionals: true,
-  useDefaultValue: false,
+  useDefaultValue: true,
   maxItems: 1,
   random: () => 0,
 });
 JSONSchemaFaker.define("string", () => "");
-JSONSchemaFaker.define("integer", () => 1);
-JSONSchemaFaker.define("number", () => 0);
+JSONSchemaFaker.define("integer", () => 0);
 JSONSchemaFaker.define("boolean", () => false);
 JSONSchemaFaker.define("array", (schema) => { return []; });
 JSONSchemaFaker.define("object", (schema) => { return {}; });

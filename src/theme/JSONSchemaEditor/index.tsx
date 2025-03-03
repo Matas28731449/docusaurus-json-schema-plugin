@@ -90,8 +90,14 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // Notice from https://docusaurus.io/docs/api/themes/configuration#use-color-mode
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
+  // Start with an empty object as the editor content.
   const [editorContent, setEditorContent] = useState<string>("{}");
+  // Track if the user has manually edited the content.
+  const [manualEdit, setManualEdit] = useState<boolean>(false);
 
+  // Event listener: when an "insertSchema" event occurs, merge new partial schema
+  // with current editor content unless manual editing is detected. If manual editing is detected,
+  // reset the editor content (i.e. don't merge).
   useEffect(() => {
     const handleInsertSchema = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -99,31 +105,43 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
         setEditorContent((prevContent) => {
           let currentTemplate = {};
           try {
-            if (prevContent && prevContent.trim()) {
+            if (prevContent && prevContent.trim() && !manualEdit) {
               currentTemplate = JSON.parse(prevContent);
             }
           } catch (error) {
+            console.error("Error parsing existing editor content:", error);
+            currentTemplate = {};
+          }
+          // If manual edit was detected, we clear the base object.
+          if (manualEdit) {
             currentTemplate = {};
           }
           const merged = smartMerge(currentTemplate, customEvent.detail, true);
           return JSON.stringify(merged, null, 2);
         });
+        // Reset the manual edit flag after an insertion.
+        setManualEdit(false);
       }
     };
     window.addEventListener("insertSchema", handleInsertSchema);
     return () => {
       window.removeEventListener("insertSchema", handleInsertSchema);
     };
-  }, []);
+  }, [manualEdit]);
 
   return (
     <BrowserOnly fallback={<LoadingLabel />}>
       {() => (
-        <>
-          <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
-            <JSONSchemaEditorInner {...props} value={editorContent} />
-          </ErrorBoundary>
-        </>
+        <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
+          <JSONSchemaEditorInner
+            {...props}
+            value={editorContent}
+            onChange={(newValue) => {
+              setManualEdit(true);
+              setEditorContent(newValue);
+            }}
+          />
+        </ErrorBoundary>
       )}
     </BrowserOnly>
   )
