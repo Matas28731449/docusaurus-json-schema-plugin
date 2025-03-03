@@ -139,46 +139,59 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Convert pointer "/properties/targets/properties/output" to dot notation "targets.output"
-      const dotPath = jsonPointer
-        .replace(/^\/properties\//, "")
-        .replace(/\/properties\//g, ".");
-      console.log("Computed dotPath:", dotPath);
+      // Check if pointer ends with "/items"
+      const isItemsPointer = jsonPointer.endsWith("/items");
   
-      // Try to get sub-schema using the computed dotPath.
-      let subSchema = get(resolvedSchema, dotPath);
-      if (!subSchema) {
-        // Fallback: convert the entire pointer to dot notation.
-        const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
-        console.log("Using fallback path:", fallbackPath);
-        subSchema = get(resolvedSchema, fallbackPath);
-      }
+      if (isItemsPointer) {
+        // Full dot-path conversion of the pointer.
+        const fullDotPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
+        // Remove trailing ".items" to get the base path (for the array property)
+        const baseDotPath = fullDotPath.replace(/\.items$/, "");
+        console.log("Computed baseDotPath for array insertion:", baseDotPath);
   
-      if (!subSchema) {
-        console.error("Sub-schema not found for pointer:", jsonPointer);
-        return;
-      }
-  
-      // Split the pointer by "/properties/" and filter out empties.
-      const parts = jsonPointer.split("/properties/").filter((p) => p.trim() !== "");
-  
-      // If only one property is selected (i.e. top-level), produce an empty skeleton
-      // according to the type of the sub-schema.
-      if (parts.length === 1) {
-        let defaultValue: any = {};
-        if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
-          defaultValue = [];
+        // Get the sub-schema for the array items.
+        // The original pointer for the items sub-schema is the full dot path (which still includes "items")
+        const itemsSubSchema = get(resolvedSchema, fullDotPath);
+        if (!itemsSubSchema) {
+          console.error("Sub-schema for array items not found for pointer:", jsonPointer);
+          return;
         }
-        const partial: any = {};
-        set(partial, dotPath, defaultValue);
-        console.log("Generated partial schema (top-level):", partial);
-        window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+  
+        // Use JSONSchemaFaker to generate the skeleton for the array items.
+        JSONSchemaFaker.resolve(itemsSubSchema)
+          .then((skeletonData) => {
+            // Create an array with two copies of the skeleton data.
+            const arr = [skeletonData, skeletonData];
+            let partial: any = {};
+            set(partial, baseDotPath, arr);
+            console.log("Generated partial schema for array:", partial);
+            window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+          })
+          .catch((error) => {
+            console.error("Error generating skeleton data for array items:", error);
+          });
       } else {
-        // For nested pointers, generate a skeleton using JSONSchemaFaker.
+        // Regular pointer handling.
+        const dotPath = jsonPointer
+          .replace(/^\/properties\//, "")
+          .replace(/\/properties\//g, ".");
+        console.log("Computed dotPath:", dotPath);
+  
+        let subSchema = get(resolvedSchema, dotPath);
+        if (!subSchema) {
+          const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
+          console.log("Using fallback path:", fallbackPath);
+          subSchema = get(resolvedSchema, fallbackPath);
+        }
+  
+        if (!subSchema) {
+          console.error("Sub-schema not found for pointer:", jsonPointer);
+          return;
+        }
+  
         JSONSchemaFaker.resolve(subSchema)
           .then((skeletonData) => {
-            // If the final type is array and the Faker didn't return an array,
-            // force it to be an empty array.
+            // If the final type is array and the Faker didn't return an array, force it.
             if (subSchema && typeof subSchema === "object" && subSchema.type === "array" && !Array.isArray(skeletonData)) {
               skeletonData = [];
             }
