@@ -133,22 +133,35 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Use the full pointer (without converting it) to extract the sub-schema.
-      // Remove the leading "/" so that lodash.get interprets it as a path.
-      const subSchema = get(resolvedSchema, jsonPointer.replace(/^\//, ""));
+      // Convert pointer "/properties/targets/properties/output" to dot notation.
+      const dotPath = jsonPointer
+        .replace(/^\/properties\//, "")
+        .replace(/\/properties\//g, ".");
+        
+      console.log("Computed dotPath:", dotPath);
+      
+      // Try to get sub-schema using the computed dotPath.
+      let subSchema = get(resolvedSchema, dotPath);
+      
+      // If not found, try using the full pointer with the leading slash removed.
+      if (!subSchema) {
+        const fallbackPath = jsonPointer.replace(/^\//, "");
+        console.log("Using fallback path:", fallbackPath);
+        subSchema = get(resolvedSchema, fallbackPath);
+      }
+      
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
         return;
       }
+      
+      // Use JSONSchemaFaker to generate a skeleton from the sub-schema.
       JSONSchemaFaker.resolve(subSchema)
         .then((skeletonData) => {
-          // Now, for the partial object, convert the pointer to a dot-notation path 
-          // that strips out the "properties" segments.
-          const dotPath = jsonPointer
-            .replace(/^\/properties\//, "")
-            .replace(/\/properties\//g, ".");
+          // Use lodash.set to create a partial object at the computed dotPath.
           let partial: any = {};
           set(partial, dotPath, skeletonData);
+          console.log("Generated partial schema:", partial);
           window.dispatchEvent(
             new CustomEvent("insertSchema", { detail: partial })
           );
