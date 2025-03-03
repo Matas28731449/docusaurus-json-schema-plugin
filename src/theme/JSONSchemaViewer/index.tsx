@@ -159,18 +159,38 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         return;
       }
   
-      // Use JSONSchemaFaker.resolve to generate a skeleton from the sub-schema.
-      JSONSchemaFaker.resolve(subSchema)
-        .then((skeletonData) => {
-          // Build partial object using lodash.set at the computed dotPath.
-          let partial: any = {};
-          set(partial, dotPath, skeletonData);
-          console.log("Generated partial schema:", partial);
-          window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
-        })
-        .catch((error) => {
-          console.error("Error generating skeleton data:", error);
-        });
+      // Split the pointer by "/properties/" and filter out empties.
+      const parts = jsonPointer.split("/properties/").filter((p) => p.trim() !== "");
+  
+      // If only one property is selected (i.e. top-level), produce an empty skeleton
+      // according to the type of the sub-schema.
+      if (parts.length === 1) {
+        let defaultValue: any = {};
+        if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
+          defaultValue = [];
+        }
+        const partial: any = {};
+        set(partial, dotPath, defaultValue);
+        console.log("Generated partial schema (top-level):", partial);
+        window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+      } else {
+        // For nested pointers, generate a skeleton using JSONSchemaFaker.
+        JSONSchemaFaker.resolve(subSchema)
+          .then((skeletonData) => {
+            // If the final type is array and the Faker didn't return an array,
+            // force it to be an empty array.
+            if (subSchema && typeof subSchema === "object" && subSchema.type === "array" && !Array.isArray(skeletonData)) {
+              skeletonData = [];
+            }
+            let partial: any = {};
+            set(partial, dotPath, skeletonData);
+            console.log("Generated partial schema (nested):", partial);
+            window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+          })
+          .catch((error) => {
+            console.error("Error generating skeleton data:", error);
+          });
+      }
     }
   };
 
