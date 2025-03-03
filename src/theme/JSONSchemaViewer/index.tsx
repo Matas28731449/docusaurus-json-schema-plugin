@@ -139,48 +139,77 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Remove both "properties" and "items" segments from the pointer.
+      // If the pointer ends exactly with "/items", we want to remove that segment
+      // and force the property's value to be an empty array.
+      if (jsonPointer.endsWith("/items")) {
+        const basePointer = jsonPointer.replace(/\/items$/, "");
+        // Convert basePointer into dot-notation by removing "properties" segments.
+        const dotPath = basePointer
+          .replace(/^\/properties\//, "")
+          .replace(/\/properties\//g, ".")
+          .replace(/^\//, "")
+          .replace(/\//g, ".");
+        console.log("Computed dotPath for array (items pointer):", dotPath);
+        let partial: any = {};
+        set(partial, dotPath, []);
+        console.log("Generated partial schema (array forced):", partial);
+        window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+        return;
+      }
+      
+      // Otherwise, use your existing logic:
       const dotPath = jsonPointer
-        .replace(/\/(properties|items)/g, "")  // remove segments "properties" and "items"
-        .replace(/^\//, "")                    // remove leading slash
-        .replace(/\//g, ".");                  // replace remaining slashes with dots
-  
+        .replace(/\/(properties|items)/g, "")
+        .replace(/^\//, "")
+        .replace(/\//g, ".");
       console.log("Computed dotPath:", dotPath);
   
-      // Use the same conversion for the fallback path.
+      // Fallback: convert the entire pointer to dot notation without stripping segments.
       const fallbackPath = jsonPointer
-        .replace(/\/(properties|items)/g, "")
         .replace(/^\//, "")
         .replace(/\//g, ".");
       console.log("Using fallback path:", fallbackPath);
   
-      // Extract the sub-schema from the resolved schema using the fallbackPath.
-      let subSchema = get(resolvedSchema, fallbackPath);
+      let subSchema = get(resolvedSchema, dotPath);
+      if (!subSchema) {
+        subSchema = get(resolvedSchema, fallbackPath);
+      }
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
         return;
       }
-  
-      // If the sub-schema type is array, we want to generate an empty array skeleton.
-      if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
+      
+      // Determine if the pointer selects a top-level property (no nested children).
+      const parts = jsonPointer.split("/properties/").filter((p) => p.trim() !== "");
+      if (parts.length === 1) {
+        let defaultValue: any = {};
+        if (subSchema && typeof subSchema === "object" && subSchema.type === "array") {
+          defaultValue = [];
+        }
         let partial: any = {};
-        set(partial, dotPath, []);
-        console.log("Generated partial schema (array):", partial);
+        set(partial, dotPath, defaultValue);
+        console.log("Generated partial schema (top-level):", partial);
         window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
-        return;
+      } else {
+        JSONSchemaFaker.resolve(subSchema)
+          .then((skeletonData) => {
+            if (
+              subSchema &&
+              typeof subSchema === "object" &&
+              subSchema.type === "array" &&
+              !Array.isArray(skeletonData)
+            ) {
+              skeletonData = [];
+            }
+            let partial: any = {};
+            set(partial, dotPath, skeletonData);
+            console.log("Generated partial schema (nested):", partial);
+            window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
+          })
+          .catch((error) => {
+            console.error("Error generating skeleton data:", error);
+          });
       }
-  
-      // Otherwise, generate skeleton data using JSONSchemaFaker.resolve.
-      JSONSchemaFaker.resolve(subSchema)
-        .then((skeletonData) => {
-          let partial: any = {};
-          set(partial, dotPath, skeletonData);
-          console.log("Generated partial schema (nested):", partial);
-          window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
-        })
-        .catch((error) => {
-          console.error("Error generating skeleton data:", error);
-        });
     }
   };
 
