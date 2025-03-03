@@ -133,38 +133,34 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
 
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Convert pointer "/properties/targets/properties/output" to dot notation.
+      // Convert pointer "/properties/targets/properties/output" to dot notation "targets.output"
       const dotPath = jsonPointer
         .replace(/^\/properties\//, "")
         .replace(/\/properties\//g, ".");
-        
       console.log("Computed dotPath:", dotPath);
-      
+  
       // Try to get sub-schema using the computed dotPath.
       let subSchema = get(resolvedSchema, dotPath);
-      
-      // If not found, try using the full pointer with the leading slash removed.
       if (!subSchema) {
-        const fallbackPath = jsonPointer.replace(/^\//, "");
+        // Fallback: convert the entire pointer to dot notation.
+        const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
         console.log("Using fallback path:", fallbackPath);
         subSchema = get(resolvedSchema, fallbackPath);
       }
-      
+  
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
         return;
       }
-      
-      // Use JSONSchemaFaker to generate a skeleton from the sub-schema.
+  
+      // Use JSONSchemaFaker.resolve to generate a skeleton from the sub-schema.
       JSONSchemaFaker.resolve(subSchema)
         .then((skeletonData) => {
-          // Use lodash.set to create a partial object at the computed dotPath.
+          // Build partial object using lodash.set at the computed dotPath.
           let partial: any = {};
           set(partial, dotPath, skeletonData);
           console.log("Generated partial schema:", partial);
-          window.dispatchEvent(
-            new CustomEvent("insertSchema", { detail: partial })
-          );
+          window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
         })
         .catch((error) => {
           console.error("Error generating skeleton data:", error);
