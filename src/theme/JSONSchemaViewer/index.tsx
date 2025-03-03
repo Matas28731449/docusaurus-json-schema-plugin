@@ -31,15 +31,15 @@ if (typeof window !== "undefined" && typeof window.Buffer === "undefined") {
 // Configure JSON Schema Faker to generate a skeleton:
 JSONSchemaFaker.option({
   alwaysFakeOptionals: true,
-  useDefaultValue: true,
+  useDefaultValue: false,
   maxItems: 1,
   random: () => 0,
 });
-JSONSchemaFaker.define("string", () => "");
-JSONSchemaFaker.define("integer", () => 0);
-JSONSchemaFaker.define("boolean", () => false);
-JSONSchemaFaker.define("array", (schema) => { return []; });
-JSONSchemaFaker.define("object", (schema) => { return {}; });
+JSONSchemaFaker.define("string", () => { return ""; });
+JSONSchemaFaker.define("integer", () => { return 0; });
+JSONSchemaFaker.define("boolean", () => { return false; });
+JSONSchemaFaker.define("array", () => { return []; });
+JSONSchemaFaker.define("object", () => { return {}; });
 
 export type Props = {
   /**
