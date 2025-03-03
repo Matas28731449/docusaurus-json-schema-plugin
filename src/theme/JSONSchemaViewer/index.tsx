@@ -131,28 +131,24 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
     undefined
   )
 
-  // onInsert handler: uses lodash to convert pointer to dot notation,
-  // extracts the sub-schema using lodash.get, and then generates a skeleton
-  // using JSONSchemaFaker.resolve. Finally, it dispatches the result in an event.
   const handleInsert = (jsonPointer: string) => {
     if (resolvedSchema) {
-      // Convert pointer like "/properties/targets/properties/output" to dot path "targets.output"
-      const dotPath = jsonPointer
-        .replace(/^\/properties\//, "")
-        .replace(/\/properties\//g, ".");
-      // Use lodash.get to extract the sub-schema from the resolved schema.
-      const subSchema = get(resolvedSchema, dotPath);
+      // Use the full pointer (without converting it) to extract the sub-schema.
+      // Remove the leading "/" so that lodash.get interprets it as a path.
+      const subSchema = get(resolvedSchema, jsonPointer.replace(/^\//, ""));
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
         return;
       }
-      // Use JSONSchemaFaker to generate a skeleton for the sub-schema.
       JSONSchemaFaker.resolve(subSchema)
         .then((skeletonData) => {
-          // Use lodash.set to build an object with the dotPath and skeletonData.
+          // Now, for the partial object, convert the pointer to a dot-notation path 
+          // that strips out the "properties" segments.
+          const dotPath = jsonPointer
+            .replace(/^\/properties\//, "")
+            .replace(/\/properties\//g, ".");
           let partial: any = {};
           set(partial, dotPath, skeletonData);
-          // Dispatch event with the partial schema.
           window.dispatchEvent(
             new CustomEvent("insertSchema", { detail: partial })
           );
@@ -161,7 +157,7 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
           console.error("Error generating skeleton data:", error);
         });
     }
-  }
+  };
 
   useEffect(() => {
     // Time to do the job
