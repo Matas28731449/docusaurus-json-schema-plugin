@@ -84,6 +84,25 @@ function ErrorOccurred(props: { error: Error }): JSX.Element {
   )
 }
 
+function ReplaceBadIntegers(value: any): any {
+  if (typeof value === "number") {
+    return value === -1000000 ? 0 : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(ReplaceBadIntegers);
+  }
+  if (typeof value === "object" && value !== null) {
+    const newObj: any = {};
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        newObj[key] = ReplaceBadIntegers(value[key]);
+      }
+    }
+    return newObj;
+  }
+  return value;
+}
+
 // Internal
 function JSONSchemaInnerViewer(props: InnerViewerProperties): JSX.Element {
   const { schema, viewerOptions, className, onInsert } = props
@@ -169,10 +188,11 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
       // Use JSONSchemaFaker to resolve the sub-schema.
       JSONSchemaFaker.resolve(subSchema)
         .then((skeletonData) => {
+          const fixedSkeleton = ReplaceBadIntegers(skeletonData);
           let partial: any = {};
           // We force the array: if our resolved sub-schema is for an array,
           // we want the parent property to remain an array, with our skeleton inserted into the first element.
-          set(partial, finalDotPath, skeletonData);
+          set(partial, finalDotPath, fixedSkeleton);
           console.log("Generated partial schema (with items):", partial);
           window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
         })
@@ -228,8 +248,9 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         ) {
           skeletonData = [];
         }
+        const fixedSkeleton = ReplaceBadIntegers(skeletonData);
         let partial: any = {};
-        set(partial, dotPath, skeletonData);
+        set(partial, dotPath, fixedSkeleton);
         console.log("Generated partial schema (nested):", partial);
         window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
       })

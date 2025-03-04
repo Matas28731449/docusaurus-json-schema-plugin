@@ -118,7 +118,7 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
 // The component calling useColorMode must be a child of the Layout component.
 export default function JSONSchemaEditor(props: Props): JSX.Element {
   // Start with an empty object as the editor content.
-  const [editorContent, setEditorContent] = useState<string>("{}");
+  const [editorContent, setEditorContent] = useState<string>(props.value || "{}");
   // Track if the user has manually edited the content.
   const [manualEdit, setManualEdit] = useState<boolean>(false);
 
