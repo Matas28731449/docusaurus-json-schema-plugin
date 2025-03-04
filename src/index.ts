@@ -79,7 +79,7 @@ export default function myPlugin(
           new MonacoWebpackPlugin(
             options?.monacoConfig || {
               // By default, json is enough for most use case but customers have the final words ...
-              languages: ["json"],
+              languages: ["json", "yaml"],
             },
           ),
         ],
