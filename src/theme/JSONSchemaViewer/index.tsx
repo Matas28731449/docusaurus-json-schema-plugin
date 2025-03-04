@@ -31,7 +31,7 @@ if (typeof window !== "undefined" && typeof window.Buffer === "undefined") {
 // Configure JSON Schema Faker to generate a skeleton:
 JSONSchemaFaker.option({
   alwaysFakeOptionals: true,
-  useDefaultValue: false,
+  useDefaultValue: true,
   maxItems: 1,
   random: () => 0,
 });
