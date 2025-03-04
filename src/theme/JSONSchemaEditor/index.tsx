@@ -14,7 +14,7 @@ import type { EditorWillMount, MonacoEditorProps } from "react-monaco-editor"
 import type { Props as ErrorProps } from "@theme/Error"
 import type { languages as MonacoLanguages } from "monaco-editor/esm/vs/editor/editor.api"
 import { smartMerge } from "@theme/JSONSchemaViewer/utils/smartMerge"
-
+import { configureMonacoYaml } from "monaco-yaml"
 
 export type Props = {
   /**
@@ -56,8 +56,13 @@ function findOrGenerateId(schema: unknown, idx: number): string {
 // Main component
 function JSONSchemaEditorInner(props: Props): JSX.Element {
   const { schema, diagnosticsOptions, value, ...editorProps } = props
+  const [editorInstance, setEditorInstance] = useState<any>(null)
+  const [monacoInstance, setMonacoInstance] = useState<any>(null)
 
   const editorWillMount: EditorWillMount = (monaco) => {
+    // YAML support
+    configureMonacoYaml(monaco)
+
     // Streamline algorithm
     const userSchemas = Array.isArray(schema) ? schema : [schema]
 
@@ -75,12 +80,34 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
     })
   }
 
+  const editorDidMount = (editor: any, monaco: any) => {
+    setEditorInstance(editor)
+    setMonacoInstance(monaco)
+  }
+
+  const handleChange = (value: string, event: any) => {
+    if (editorInstance && monacoInstance) {
+      try {
+        JSON.parse(value)
+        monacoInstance.editor.setModelLanguage(editorInstance.getModel(), "json")
+      } catch (error) {
+        monacoInstance.editor.setModelLanguage(editorInstance.getModel(), "yaml")
+      }
+    }
+
+    if (editorProps.onChange) {
+      editorProps.onChange(value, event)
+    }
+  }
+
   return (
     <MonacoEditor
       height="90vh"
       language="json"
       editorWillMount={editorWillMount}
+      editorDidMount={editorDidMount}
       value={value}
+      onChange={handleChange}
       {...editorProps}
     />
   )
