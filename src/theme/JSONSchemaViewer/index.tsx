@@ -86,7 +86,7 @@ function ErrorOccurred(props: { error: Error }): JSX.Element {
 
 function ReplaceBadIntegers(value: any): any {
   if (typeof value === "number") {
-    return value === -1000000 ? 0 : value;
+    return value === -100000000 ? 0 : value;
   }
   if (Array.isArray(value)) {
     return value.map(ReplaceBadIntegers);
@@ -174,11 +174,8 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         .replace(/\//g, ".");
       // If there is any path after "items", append it; otherwise, just use the array path.
       const finalDotPath = afterDotPath ? `${arrayPath}.${afterDotPath}` : arrayPath;
-      console.log("Computed dotPath for pointer with items:", finalDotPath);
   
-      // For extracting the sub-schema, use a fallback conversion of the full pointer.
       const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
-      console.log("Using fallback path:", fallbackPath);
       let subSchema = get(resolvedSchema, fallbackPath);
       if (!subSchema) {
         console.error("Sub-schema not found for pointer:", jsonPointer);
@@ -193,7 +190,6 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
           // We force the array: if our resolved sub-schema is for an array,
           // we want the parent property to remain an array, with our skeleton inserted into the first element.
           set(partial, finalDotPath, fixedSkeleton);
-          console.log("Generated partial schema (with items):", partial);
           window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
         })
         .catch((error) => {
@@ -210,10 +206,8 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         .replace(/\/properties\//g, ".")
         .replace(/^\//, "")
         .replace(/\//g, ".");
-      console.log("Computed dotPath for array (ends with items):", dotPath);
       let partial: any = {};
       set(partial, dotPath, []);
-      console.log("Generated partial schema (array forced):", partial);
       window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
       return;
     }
@@ -224,10 +218,8 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
       .replace(/\/properties\//g, ".")
       .replace(/^\//, "")
       .replace(/\//g, ".");
-    console.log("Computed dotPath:", dotPath);
   
     const fallbackPath = jsonPointer.replace(/^\//, "").replace(/\//g, ".");
-    console.log("Using fallback path:", fallbackPath);
   
     let subSchema = get(resolvedSchema, dotPath);
     if (!subSchema) {
@@ -251,7 +243,6 @@ export default function JSONSchemaViewer(props: Props): JSX.Element {
         const fixedSkeleton = ReplaceBadIntegers(skeletonData);
         let partial: any = {};
         set(partial, dotPath, fixedSkeleton);
-        console.log("Generated partial schema (nested):", partial);
         window.dispatchEvent(new CustomEvent("insertSchema", { detail: partial }));
       })
       .catch((error) => {
