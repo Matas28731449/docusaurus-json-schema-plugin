@@ -25,6 +25,8 @@ export type Props = {
    * (useful for instance to enable enableSchemaRequest)
    */
   diagnosticsOptions?: MonacoLanguages.json.DiagnosticsOptions
+  //
+  isYaml?: boolean
 } & MonacoEditorProps & {
   value?: string
 }
@@ -54,7 +56,7 @@ function findOrGenerateId(schema: unknown, idx: number): string {
 
 // Main component
 function JSONSchemaEditorInner(props: Props): JSX.Element {
-  const { schema, diagnosticsOptions, value, ...editorProps } = props
+  const { schema, diagnosticsOptions, value, isYaml, ...editorProps } = props
 
   const editorWillMount: EditorWillMount = (monaco) => {
     // Streamline algorithm
@@ -67,17 +69,29 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
       schema: userSchema,
     }))
 
-    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-      validate: true,
-      schemas: monacoSchemas,
-      ...diagnosticsOptions,
-    })
+    if (isYaml) {
+      import("monaco-yaml").then(({ configureMonacoYaml }) => {
+        configureMonacoYaml(monaco, {
+          enableSchemaRequest: true,
+          schemas: monacoSchemas.map((s) => ({
+            ...s,
+            fileMatch: ["**/*.yml", "**/*.yaml"],
+          })),
+        })
+      })
+    } else {
+      monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+        validate: true,
+        schemas: monacoSchemas,
+        ...diagnosticsOptions,
+      })
+    }
   }
 
   return (
     <MonacoEditor
       height="90vh"
-      language="json"
+      language={isYaml ? "yaml" : "json"}
       editorWillMount={editorWillMount}
       value={value}
       {...editorProps}
@@ -93,6 +107,8 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
   const [editorContent, setEditorContent] = useState<string>(props.value || "{}");
   // Track if the user has manually edited the content.
   const [manualEdit, setManualEdit] = useState<boolean>(false);
+  //
+  const [isYaml, setIsYaml] = useState<boolean>(false)
 
   // Event listener: when an "insertSchema" event occurs, merge new partial schema
   // with current editor content unless manual editing is detected. If manual editing is detected,
@@ -131,16 +147,24 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
   return (
     <BrowserOnly fallback={<LoadingLabel />}>
       {() => (
-        <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
-          <JSONSchemaEditorInner
-            {...props}
-            value={editorContent}
-            onChange={(newValue) => {
-              setManualEdit(true);
-              setEditorContent(newValue);
-            }}
-          />
-        </ErrorBoundary>
+      <div>
+          <div style={{ marginBottom: "1rem" }}>
+          <button onClick={() => setIsYaml((prev) => !prev)}>
+            Switch to {isYaml ? "JSON" : "YAML"}
+          </button>
+        </div>
+          <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
+            <JSONSchemaEditorInner
+              {...props}
+              value={editorContent}
+              isYaml={isYaml}
+              onChange={(newValue) => {
+                setManualEdit(true);
+                setEditorContent(newValue);
+              }}
+            />
+          </ErrorBoundary>
+        </div>
       )}
     </BrowserOnly>
   )
