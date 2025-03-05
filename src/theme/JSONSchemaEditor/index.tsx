@@ -25,10 +25,6 @@ export type Props = {
    * (useful for instance to enable enableSchemaRequest)
    */
   diagnosticsOptions?: MonacoLanguages.json.DiagnosticsOptions
-  //
-  isYaml?: boolean
-  //
-  onFormatChange?: (newFormat: boolean) => void
 } & MonacoEditorProps & {
   value?: string
 }
@@ -58,7 +54,7 @@ function findOrGenerateId(schema: unknown, idx: number): string {
 
 // Main component
 function JSONSchemaEditorInner(props: Props): JSX.Element {
-  const { schema, diagnosticsOptions, value, isYaml, ...editorProps } = props
+  const { schema, diagnosticsOptions, value, ...editorProps } = props
 
   const editorWillMount: EditorWillMount = (monaco) => {
     // Streamline algorithm
@@ -71,29 +67,17 @@ function JSONSchemaEditorInner(props: Props): JSX.Element {
       schema: userSchema,
     }))
 
-    if (isYaml) {
-      import("monaco-yaml").then(({ configureMonacoYaml }) => {
-        configureMonacoYaml(monaco, {
-          enableSchemaRequest: true,
-          schemas: monacoSchemas.map((s) => ({
-            ...s,
-            fileMatch: ["**/*.yml", "**/*.yaml"],
-          })),
-        })
-      })
-    } else {
-      monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-        validate: true,
-        schemas: monacoSchemas,
-        ...diagnosticsOptions,
-      })
-    }
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      validate: true,
+      schemas: monacoSchemas,
+      ...diagnosticsOptions,
+    })
   }
 
   return (
     <MonacoEditor
       height="90vh"
-      language={isYaml ? "yaml" : "json"}
+      language={"json"}
       editorWillMount={editorWillMount}
       value={value}
       {...editorProps}
@@ -109,17 +93,6 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
   const [editorContent, setEditorContent] = useState<string>(props.value || "{}");
   // Track if the user has manually edited the content.
   const [manualEdit, setManualEdit] = useState<boolean>(false);
-
-  const [internalIsYaml, setInternalIsYaml] = useState<boolean>(false);
-  const isYaml = props.isYaml !== undefined ? props.isYaml : internalIsYaml
-
-  const handleFormatChange = () => {
-    if (props.onFormatChange) {
-      props.onFormatChange(!isYaml)
-    } else {
-      setInternalIsYaml((prev) => !prev)
-    }
-  }
 
   // Event listener: when an "insertSchema" event occurs, merge new partial schema
   // with current editor content unless manual editing is detected. If manual editing is detected,
@@ -158,24 +131,16 @@ export default function JSONSchemaEditor(props: Props): JSX.Element {
   return (
     <BrowserOnly fallback={<LoadingLabel />}>
       {() => (
-      <div>
-          <div style={{ marginBottom: "1rem" }}>
-          <button onClick={handleFormatChange}>
-            Switch to {isYaml ? "JSON" : "YAML"}
-          </button>
-        </div>
-          <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
-            <JSONSchemaEditorInner
-              {...props}
-              value={editorContent}
-              isYaml={isYaml}
-              onChange={(newValue) => {
-                setManualEdit(true);
-                setEditorContent(newValue);
-              }}
-            />
-          </ErrorBoundary>
-        </div>
+        <ErrorBoundary fallback={(props) => <EditorError {...props} />}>
+          <JSONSchemaEditorInner
+            {...props}
+            value={editorContent}
+            onChange={(newValue) => {
+              setManualEdit(true);
+              setEditorContent(newValue);
+            }}
+          />
+        </ErrorBoundary>
       )}
     </BrowserOnly>
   )
